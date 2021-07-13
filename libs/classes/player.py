@@ -108,6 +108,7 @@ class Player():
         self.buys = 1
         self.move_cards_from_deck_to_hand(5)      
         self.phase = 'wait'
+        self.activated_cards = {}
         desk.draw()
         self.game.next_player()
 
