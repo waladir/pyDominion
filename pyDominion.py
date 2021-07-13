@@ -51,9 +51,8 @@ def create_game():
     global game
    
     players_count = 2
-    player_name = 'waladir'
-    player = Player(name = player_name, index = 1)
-    otherplayer = Player(name = 'PLAYER2', index = 2)
+    player = Player('waladir', 1)
+    otherplayer = Player('PLAYER2', 2)
     players = [player, otherplayer]
 
     game = Game(2, players, 'Dominion')
@@ -67,41 +66,30 @@ game = None
 create_game()
 game.start(SCREEN, cards_set)
 
-while True:
-    # main_menu = pygame_menu.Menu('pyDominion', 400, 300, theme=pygame_menu.themes.THEME_DARK)
-    # main_menu.add.text_input(title = 'Jméno hráče:  ', textinput_id = 'players_name')
-    # main_menu.add.selector(title = 'Počet hráčů :  ', selector_id = 'players_count', items = [('2', 2), ('3', 3), ('4', 4)])
-    # main_menu.add.button('Start', create_game)
-    # main_menu.add.button('Konec', pygame_menu.events.EXIT)
-    # main_menu.mainloop(SCREEN)  
+while 1 == 1:
+    game.switch_player = False
+    game.do_round()
+    while game.switch_player == False:
+        # main_menu = pygame_menu.Menu('pyDominion', 400, 300, theme=pygame_menu.themes.THEME_DARK)
+        # main_menu.add.text_input(title = 'Jméno hráče:  ', textinput_id = 'players_name')
+        # main_menu.add.selector(title = 'Počet hráčů :  ', selector_id = 'players_count', items = [('2', 2), ('3', 3), ('4', 4)])
+        # main_menu.add.button('Start', create_game)
+        # main_menu.add.button('Konec', pygame_menu.events.EXIT)
+        # main_menu.mainloop(SCREEN)  
 
-    for event in pygame.event.get():
-        if event.type == QUIT or event.type == pygame.KEYDOWN and event.key == K_ESCAPE:
-            pygame.quit()
-            sys.exit()    
-        if event.type == pygame.MOUSEMOTION:
-            x, y = event.pos 
-        if event.type == pygame.MOUSEBUTTONDOWN:            
-            if event.button == 3:
+        for event in pygame.event.get():
+            if event.type == QUIT or event.type == pygame.KEYDOWN and event.key == K_ESCAPE:
+                pygame.quit()
+                sys.exit()    
+            if event.type == pygame.MOUSEMOTION:
                 x, y = event.pos 
-                game.desk.show_card_detail(x, y)
-            if event.button == 1:
-                x, y = event.pos 
-                game.desk.activate_card(x, y) 
-                game.desk.action_button_click(x, y)               
-    game.desk.detect_hover(x, y)   
-
-
-# # sys.exit()
-
-# for expansion in expansions:
-#     if expansions[expansion]['enabled'] == True:
-#         expansion_cards = cards[expansion]
-#         for card_id in expansion_cards:
-#             print(card_id)
-#             card = Card(name = card_id, name_en = expansion_cards[card_id]['name_en'], expansion = expansion, image = expansion_cards[card_id]['image'], kingdom_card = expansion_cards[card_id]['kingdom_card'], card_type = expansion_cards[card_id]['card_type'], card_subtype = expansion_cards[card_id]['card_subtype'], price = expansion_cards[card_id]['price'], value = expansion_cards[card_id]['value'])
-#             card.draw_card(SCREEN, (0,0))
-#             pygame.display.update()
-#             time.sleep(1)    
-
+            if event.type == pygame.MOUSEBUTTONDOWN:            
+                if event.button == 3:
+                    x, y = event.pos 
+                    game.desk.show_card_detail(x, y)
+                if event.button == 1:
+                    x, y = event.pos 
+                    game.desk.activate_card(x, y) 
+                    game.desk.action_button_click(x, y)               
+        game.desk.detect_hover(x, y)   
 

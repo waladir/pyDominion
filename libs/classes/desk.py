@@ -6,6 +6,7 @@ import time
 class Desk():
     def __init__(self, SCREEN, cards_set, players_count, game, player):
         self.SCREEN = SCREEN
+        self.cards_set = cards_set
         self.game = game
         self.player = player
         self.set_limits()
