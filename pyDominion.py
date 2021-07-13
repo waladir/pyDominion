@@ -87,8 +87,8 @@ while True:
                 game.desk.show_card_detail(x, y)
             if event.button == 1:
                 x, y = event.pos 
-                game.desk.activate_card(x, y)                
-
+                game.desk.activate_card(x, y) 
+                game.desk.action_button_click(x, y)               
     game.desk.detect_hover(x, y)   
 
 

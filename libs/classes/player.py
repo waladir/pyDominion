@@ -9,7 +9,7 @@ class Player():
         self.actions = 1
         self.buys = 1
         self.phase = 'wait'
-        self.activated_cards = []
+        self.activated_cards = {}
 
     def create_deck_pile(self):
         pile = Pile('players_deck', 0)
@@ -24,20 +24,35 @@ class Player():
         pile = Pile('players_hand', 0)
         self.discard = pile
 
-    def get_card_from_deck(self, count):
+    def get_cards_from_deck(self, count):
         cards = []
         for i in range(count):
             card = self.deck.get_top_card()
             cards.append(card)
         return cards
-    
-    def put_card_to_hand(self, cards):
-        self.hand.add_card(cards)
+
+    def get_cards_from_hand(self, count):
+        cards = []
+        for i in range(count):
+            card = self.hand.get_top_card()
+            cards.append(card)
+        return cards
+
+    def put_card_to_hand(self, card):
+        self.hand.add_card(card)
+
+    def put_card_to_discard(self, card):
+        self.discard.add_card(card)        
 
     def move_cards_from_deck_to_hand(self, count):
-        cards = self.get_card_from_deck(count)
+        cards = self.get_cards_from_deck(count)
         for card in cards:
-            self.put_card_to_hand(card.name)
+            self.put_card_to_hand(card)
+
+    def move_cards_from_hand_to_discard(self, count):
+        cards = self.get_cards_from_hand(count)
+        for card in cards:
+            self.put_card_to_discard(card)            
 
     def start_turn(self):
         self.phase = 'action'
@@ -57,9 +72,12 @@ class Player():
         desk.draw()
 
     def cleanup_phase(self, desk):
+        self.move_cards_from_hand_to_discard(len(self.hand.cards))
         self.treasure = 0
         self.actions = 1
         self.buys = 1
+        desk.draw()
+        self.phase = 'wait'
         pass
 
     def wait_phase(self, desk):

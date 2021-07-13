@@ -5,6 +5,7 @@ class Game():
         self.players_count = players_count
         self.players = players
         self.expansions = expansions
+        self.round = 0
         self.state = 'created'
 
     def start(self, SCREEN, cards_set):
@@ -15,7 +16,7 @@ class Game():
             player.create_discard_pile()
             player.move_cards_from_deck_to_hand(5)
         self.current_player = 0
-        self.desk = Desk(SCREEN, cards_set, self.players_count, self.players[self.current_player])
+        self.desk = Desk(SCREEN, cards_set, self.players_count, self, self.players[self.current_player])
         self.state = 'running'
         self.next_round()
 

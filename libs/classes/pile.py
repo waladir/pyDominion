@@ -10,16 +10,19 @@ class Pile():
 
     def create_pile(self, card, count):
         for i in range(count):
-            self.add_card(card)
+            self.create_card(card)
 
     def create_players_pile(self):
         self.create_pile('Měďák', 7)
         self.create_pile('Statek', 3)
         self.shuffle()        
 
-    def add_card(self, card_id):
+    def create_card(self, card_id):
         card = Card(card_id)
-        self.cards.append(card)
+        self.cards.insert(0, card)
+
+    def add_card(self, card):
+        self.cards.insert(0, card)
 
     def top_card(self):
         if len(self.cards) > 0:
