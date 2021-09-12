@@ -1,9 +1,9 @@
 import math
-
 from libs.classes.card import Card
 
 class Gardens(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'gardens'
         self.name = 'Zahrady' 
         self.name_en = 'Gardens'

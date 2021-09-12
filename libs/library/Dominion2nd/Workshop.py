@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Workshop(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'workshop'
         self.name = 'Dílna' 
         self.name_en = 'Workshop'
@@ -13,27 +14,35 @@ class Workshop(Card):
         self.price = 3
         self.value = 0
 
+        self.phase = 'select_to_gain'
+
     def do_action(self):
-        if self.action.phase != 'select':
+        from libs.events import create_event
+        if self.phase == 'select_to_gain':
+            selectable_piles = []
             piles = self.desk.basic_piles + self.desk.kingdom_piles
             for pile in piles:
                 card = pile.top_card()
-                if card.price <= 4:
-                    self.action.selectable_cards.append(card)
-            if len(self.action.selectable_cards) > 0:
-                self.action.to_select = 1
-                self.action.phase = 'select'
+                if card is not None and card.price <= 4:
+                    selectable_piles.append(pile)
+            if len(selectable_piles) > 0:
+                self.player.activity.action_card_select(to_select = 1, select_type = 'optional', select_action = 'select', piles = selectable_piles, info = [])
+                self.phase = 'gain_card'
+                self.desk.add_message('Vyber kartu, kterou získáš')
                 self.desk.draw()                
             else:
                 self.action.cleanup()
-        else:
-            for selected in self.action.selected_cards:
-                pile = self.action.selected_cards[selected]
-                card = pile.get_top_card()
-                self.player.put_card_to_discard(card)  
-            self.action.cleanup()
-            self.desk.changed.append('basic')
-            self.desk.changed.append('kingdom')
-            self.desk.changed.append('players_discard')
-            self.desk.draw()
+        elif self.phase == 'gain_card':
+            if len(self.desk.selected_piles) == 0:
+                self.action.cleanup()
+            else:
+                for pile in self.desk.selected_piles:
+                    card = pile.get_top_card()
+                    self.player.put_card_to_discard(card)  
+                    create_event(self, 'gain_card', { 'player' : self.player.name, 'card_name' : card.name }, self.game.get_other_players_names())
+                self.action.cleanup()
+                self.desk.changed.append('basic')
+                self.desk.changed.append('kingdom')
+                self.desk.changed.append('players_discard')
+                self.desk.draw()
 

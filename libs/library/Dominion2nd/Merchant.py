@@ -3,6 +3,7 @@ from libs.classes.trigger import Trigger
 
 class Merchant(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'merchant'
         self.name = 'Obchodnice' 
         self.name_en = 'Merchant'
@@ -17,16 +18,14 @@ class Merchant(Card):
         self.trigger = None
 
     def do_action(self):
-        if self.action.bonuses == True:
-            self.action.bonuses = False 
-            self.player.move_cards_from_deck_to_hand(1)
-            self.desk.changed.append('players_deck')
-            self.desk.changed.append('players_hand')            
-            self.player.actions = self.player.actions + 1
-            self.desk.changed.append('info')
-            self.trigger = Trigger(self, self.player, 'card_played', 'end_of_round')
-            self.trigger.duration_end = self.player.game.round
-            self.desk.draw()        
+        self.player.move_cards_from_deck_to_hand(1)
+        self.desk.changed.append('players_deck')
+        self.desk.changed.append('players_hand')            
+        self.player.actions = self.player.actions + 1
+        self.desk.changed.append('info')
+        self.trigger = Trigger(self, self.player, 'card_played', 'end_of_round')
+        self.trigger.duration_end = self.player.game.round
+        self.desk.draw()        
         self.action.cleanup()     
 
     def do_trigger_start(self):

@@ -3,6 +3,7 @@ from libs.classes.trigger import Trigger
 
 class Coppersmith(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'coppersmith'
         self.name = 'Měditepec' 
         self.name_en = 'Coppersmith'
@@ -17,11 +18,9 @@ class Coppersmith(Card):
         self.trigger = None
 
     def do_action(self):
-        if self.action.bonuses == True:
-            self.action.bonuses = False        
-            self.trigger = Trigger(self, self.player, 'card_played', 'end_of_round')
-            self.trigger.duration_end = self.player.game.round
-            self.desk.draw()        
+        self.trigger = Trigger(self, self.player, 'card_played', 'end_of_round')
+        self.trigger.duration_end = self.player.game.round
+        self.desk.draw()        
         self.action.cleanup()     
 
     def do_trigger_start(self):

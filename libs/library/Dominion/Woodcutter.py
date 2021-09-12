@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Woodcutter(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'woodcutter'
         self.name = 'Dřevorubec' 
         self.name_en = 'Woodcutter'
@@ -14,10 +15,8 @@ class Woodcutter(Card):
         self.value = 0
 
     def do_action(self):
-        if self.action.bonuses == True:
-            self.action.bonuses = False        
-            self.player.buys = self.player.buys + 1
-            self.player.treasure = self.player.treasure + 2
-            self.desk.changed.append('info')
-            self.desk.draw()        
+        self.player.buys = self.player.buys + 1
+        self.player.treasure = self.player.treasure + 2
+        self.desk.changed.append('info')
+        self.desk.draw()        
         self.action.cleanup()

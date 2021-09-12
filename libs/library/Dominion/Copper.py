@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Copper(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'copper'
         self.name = 'Měďák' 
         self.name_en = 'Copper'

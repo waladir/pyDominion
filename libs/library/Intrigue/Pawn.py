@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Pawn(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'pawn'
         self.name = 'Pěšák' 
         self.name_en = 'Pawn'
@@ -13,22 +14,24 @@ class Pawn(Card):
         self.price = 2
         self.value = 0
 
+        self.phase = 'select_bonus'
+
     def do_action(self):
-        if self.action.phase != 'select':
+        if self.phase == 'select_bonus':
+            selectable_piles = []
             if len(self.player.deck.cards) + len(self.player.discard.cards) > 0:
-                self.action.selectable_piles.append(self.player.deck)
-            self.action.to_select = 2
-            self.action.selectable_info = ['treasure', 'actions','buys']
-            self.action.phase = 'select'
+                selectable_piles.append(self.player.deck)
+            selectable_info = ['treasure', 'actions','buys']
+            self.player.activity.action_card_select(to_select = 2, select_type = 'optional', select_action = 'select', piles = selectable_piles, info = selectable_info)
+            self.phase = 'get_bonus'
             self.desk.draw()                
-        else:
-            if len(self.action.selected_piles) > 0:
+        elif self.phase == 'get_bonus':
+            if len(self.desk.selected_piles) > 0:
                 cards = self.player.get_cards_from_deck(1)
                 for card in cards:
                     self.player.put_card_to_hand(card)   
-
-            if len(self.action.selected_info) > 0:
-                for section in self.action.selected_info:
+            if len(self.desk.selected_info) > 0:
+                for section in self.desk.selected_info:
                     if section == 'treasure':
                         self.player.treasure = self.player.treasure + 1
                     if section == 'actions':

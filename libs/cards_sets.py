@@ -1,4 +1,4 @@
-cards_sets = ({ 'test' : { 'expansions' : ['Dominion2nd', 'Intrigue2nd'], 'cards' : ['Replace', 'Market', 'Merchant', 'Militia', 'Mine', 'Moat', 'Remodel', 'Smithy', 'Village', 'Workshop'] }},
+cards_sets = (
 { 'První hra' : { 'expansions' : ['Dominion'], 'cards' : ['Workshop', 'Woodcutter', 'Mine', 'Moat', 'Smithy', 'Militia', 'Remodel', 'Cellar', 'Market', 'Village'] }},
 { 'Velké peníze' : { 'expansions' : ['Dominion'], 'cards' : ['Adventurer', 'Mine', 'Feast', 'Chancellor', 'Chapel', 'Laboratory', 'Moneylender', 'Market', 'Throne_Room', 'Bureaucrat'] }},
 { 'Interakce' : { 'expansions' : ['Dominion'], 'cards' : ['Moat', 'Festival', 'Chancellor', 'Library', 'Militia', 'Spy', 'Bureaucrat', 'Village', 'Council_Room', 'Thief'] }},
@@ -9,11 +9,11 @@ cards_sets = ({ 'test' : { 'expansions' : ['Dominion2nd', 'Intrigue2nd'], 'cards
 { 'Tajné plány' : { 'expansions' : ['Intrigue'], 'cards' : ['Conspirator', 'Harem', 'Ironworks', 'Pawn', 'Saboteur', 'Shanty_Town', 'Steward', 'Swindler', 'Trading_Post', 'Tribute'] }},
 { 'Nejlepší přání' : { 'expansions' : ['Intrigue'], 'cards' : ['Coppersmith', 'Courtyard', 'Masquerade', 'Scout', 'Shanty_Town', 'Steward', 'Torturer', 'Trading_Post', 'Upgrade', 'Wishing_Well'] }},
 
-{ 'Vítězný tanec' : { 'expansions' : ['Intrigue2nd'], 'cards' : ['Baron', 'Courtier', 'Duke', 'Harem', 'Ironworks', 'Masquerade', 'Mill', 'Nobles', 'Patrol', 'Replace'] }},
+{ 'Vítězný tanec (2nd)' : { 'expansions' : ['Intrigue2nd'], 'cards' : ['Baron', 'Courtier', 'Duke', 'Harem', 'Ironworks', 'Masquerade', 'Mill', 'Nobles', 'Patrol', 'Replace'] }},
 { 'Plány na spiknutí' : { 'expansions' : ['Intrigue2nd'], 'cards' : ['Conspirator', 'Ironworks', 'Lurker', 'Pawn', 'Mining_Village', 'Secret_Passage', 'Steward', 'Swindler', 'Torturer', 'Trading_Post'] }},
-{ 'Nejlepší přání' : { 'expansions' : ['Intrigue2nd'], 'cards' : ['Baron', 'Conspirator', 'Courtyard', 'Diplomat', 'Duke', 'Secret_Passage', 'Shanty_Town', 'Torturer', 'Upgrade', 'Wishing_Well'] }},
+{ 'Nejlepší přání (2nd)' : { 'expansions' : ['Intrigue2nd'], 'cards' : ['Baron', 'Conspirator', 'Courtyard', 'Diplomat', 'Duke', 'Secret_Passage', 'Shanty_Town', 'Torturer', 'Upgrade', 'Wishing_Well'] }},
 
-{ 'První hra' : { 'expansions' : ['Dominion2nd'], 'cards' : ['Cellar', 'Market', 'Merchant', 'Militia', 'Mine', 'Moat', 'Remodel', 'Smithy', 'Village', 'Workshop'] }},
+{ 'První hra (2nd)' : { 'expansions' : ['Dominion2nd'], 'cards' : ['Cellar', 'Market', 'Merchant', 'Militia', 'Mine', 'Moat', 'Remodel', 'Smithy', 'Village', 'Workshop'] }},
 { 'Zhroucení velikosti' : { 'expansions' : ['Dominion2nd'], 'cards' : ['Artisan', 'Bandit', 'Bureaucrat', 'Chapel', 'Festival', 'Gardens', 'Sentry', 'Throne_Room', 'Witch', 'Workshop'] }},
 { 'Vršek balíčku' : { 'expansions' : ['Dominion2nd'], 'cards' : ['Artisan', 'Bureaucrat', 'Council_Room', 'Festival', 'Harbinger', 'Laboratory', 'Moneylender', 'Sentry', 'Vassal', 'Village'] }},
 { 'Kejkle' : { 'expansions' : ['Dominion2nd'], 'cards' : ['Cellar', 'Council_Room', 'Festival', 'Gardens', 'Library', 'Harbinger', 'Militia', 'Poacher', 'Smithy', 'Throne_Room'] }},

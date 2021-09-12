@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Mining_Village(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'mining_village'
         self.name = 'Důlní osada' 
         self.name_en = 'Mining_Village'
@@ -13,27 +14,30 @@ class Mining_Village(Card):
         self.price = 4
         self.value = 0
 
+        self.phase = 'select_to_trash'
+
     def do_action(self):
-        if self.action.bonuses == True:
-            self.action.bonuses = False        
+        from libs.events import create_event
+        if self.phase == 'select_to_trash':
             self.player.move_cards_from_deck_to_hand(1)
             self.player.actions = self.player.actions + 2
             self.desk.changed.append('players_deck')
             self.desk.changed.append('players_hand')
             self.desk.changed.append('info')
             self.desk.draw()
-
-        if self.action.phase != 'select':
-            self.action.selectable_cards.append(self)
-            self.action.to_select = 1
-            self.action.phase = 'select'
+            selectable_piles = []
+            selectable_piles.append(self.pile)
+            self.player.activity.action_card_select(to_select = 1, select_type = 'optional', select_action = 'select', piles = selectable_piles, info = [])
+            self.phase = 'trash_card'
+            self.desk.add_message('nebo ukonči výběr jestli si ji chceš ponechat')
+            self.desk.add_message('Vyber kartu, pokud ji chceš zahodit na smetiště,')
             self.desk.changed.append('play_area')
             self.desk.draw()                
-        else:
-            for selected in self.action.selected_cards:
-                pile = self.action.selected_cards[selected]
+        elif self.phase == 'trash_card':
+            for pile in self.desk.selected_piles:
                 card = pile.get_top_card()
                 self.desk.trash.add_card(card)
+                create_event(self, 'trash_card', { 'player' : self.player.name, 'card_name' : card.name }, self.game.get_other_players_names())
                 self.desk.coalesce_play_area()
                 self.player.treasure = self.player.treasure + 2
             self.action.cleanup()

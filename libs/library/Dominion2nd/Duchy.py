@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Duchy(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'duchy'
         self.name = 'Vévodství' 
         self.name_en = 'Duchy'

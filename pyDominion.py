@@ -8,13 +8,15 @@ import pygame_menu
 import time
 import json
 
+import debug
+
 from libs.classes.game import Game
 from libs.classes.player import Player
 from libs.classes.card import Card
 
 from libs import expansions
 from libs.api import call_api
-from libs.events import get_events, create_event
+from libs.events import get_events
 from libs import cards_set_builder
 from libs import cards_sets
 
@@ -22,7 +24,7 @@ from libs.library.Dominion import Dominion
 from libs.library.Dominion2nd import Dominion2nd
 from libs.library.Intrigue import Intrigue
 from libs.library.Intrigue2nd import Intrigue2nd
-
+from libs.library.Seaside import Seaside
 
 pygame.init()
 FPS = 30
@@ -39,59 +41,55 @@ def do_game():
     global game
 
     while 1 == 1:
-        game.switch_player = False
-        game.do_round()
-        while game.switch_player == False:
-            ts = int(time.time())             
-            if ts-last_ts > 1:
-                get_events(game.get_me())
-                last_ts = ts
-            for event in pygame.event.get():
-                game.check_events(event)
-                if event.type == pygame.KEYDOWN and event.key == K_RIGHT:
-                    if game.desk.select_area == True:
-                        game.desk.select_area_offset = game.desk.select_area_offset + 1                        
-                        if game.desk.select_area_offset + game.desk.select_area_count > len(game.desk.select_area_piles):
-                            game.desk.select_area_offset = len(game.desk.select_area_piles) - game.desk.select_area_count
-                        game.desk.changed.append('select_area')
-                    else:
-                        game.desk.players_hand_offset = game.desk.players_hand_offset + 1                        
-                        if game.desk.players_hand_offset + game.desk.players_hand_count > len(game.desk.player.hand):
-                            game.desk.players_hand_offset = len(game.desk.player.hand) - game.desk.players_hand_count
-                        game.desk.changed.append('players_hand')
-                    game.desk.draw()
-                if event.type == pygame.KEYDOWN and event.key == K_LEFT:
-                    if game.desk.select_area == True:
-                        game.desk.select_area_offset = game.desk.select_area_offset - 1                        
-                        if game.desk.select_area_offset < 0:
-                            game.desk.select_area_offset = 0
-                        game.desk.changed.append('select_area')                        
-                    else:
-                        game.desk.players_hand_offset = game.desk.players_hand_offset - 1
-                        if game.desk.players_hand_offset < 0:
-                            game.desk.players_hand_offset = 0
-                        game.desk.changed.append('players_hand')
-                    game.desk.draw()
-                if event.type == pygame.MOUSEMOTION:
+        ts = int(time.time())             
+        if ts-last_ts > 1:
+            get_events(game.get_me())
+            last_ts = ts
+        for event in pygame.event.get():
+            game.check_events(event)
+            if event.type == pygame.KEYDOWN and event.key == K_RIGHT:
+                if game.desk.select_area == True:
+                    game.desk.select_area_offset = game.desk.select_area_offset + 1                        
+                    if game.desk.select_area_offset + game.desk.select_area_count > len(game.desk.select_area_piles):
+                        game.desk.select_area_offset = len(game.desk.select_area_piles) - game.desk.select_area_count
+                    game.desk.changed.append('select_area')
+                else:
+                    game.desk.players_hand_offset = game.desk.players_hand_offset + 1                        
+                    if game.desk.players_hand_offset + game.desk.players_hand_count > len(game.desk.player.hand):
+                        game.desk.players_hand_offset = len(game.desk.player.hand) - game.desk.players_hand_count
+                    game.desk.changed.append('players_hand')
+                game.desk.draw()
+            if event.type == pygame.KEYDOWN and event.key == K_LEFT:
+                if game.desk.select_area == True:
+                    game.desk.select_area_offset = game.desk.select_area_offset - 1                        
+                    if game.desk.select_area_offset < 0:
+                        game.desk.select_area_offset = 0
+                    game.desk.changed.append('select_area')                        
+                else:
+                    game.desk.players_hand_offset = game.desk.players_hand_offset - 1
+                    if game.desk.players_hand_offset < 0:
+                        game.desk.players_hand_offset = 0
+                    game.desk.changed.append('players_hand')
+                game.desk.draw()
+            if event.type == pygame.MOUSEMOTION:
+                x, y = event.pos 
+            if event.type == pygame.MOUSEBUTTONDOWN:            
+                if event.button == 3:
                     x, y = event.pos 
-                if event.type == pygame.MOUSEBUTTONDOWN:            
-                    if event.button == 3:
-                        x, y = event.pos 
-                        game.desk.show_card_detail(x, y)
-                    if event.button == 1:
-                        x, y = event.pos 
-                        game.desk.click_on_card(x, y) 
-                        game.desk.action_button_click(x, y)               
-                        game.desk.click_on_info(x, y) 
-            game.desk.detect_hover(x, y)  
-            game.desk.player.check_phase_end()
-            if game.state == 'end' :
-                player = game.desk.player
-                if len(player.results) == game.players_count:
-                    game.players_count = -1
-                    player.results = sorted(player.results, key=lambda d: d['points'], reverse = True)
-                    game.desk.changed.append('results')
-                    game.desk.draw()
+                    game.desk.show_card_detail(x, y)
+                if event.button == 1:
+                    x, y = event.pos 
+                    game.desk.click_on_pile(x, y) 
+                    game.desk.action_button_click(x, y)               
+                    game.desk.click_on_info(x, y) 
+        game.desk.detect_hover(x, y)  
+        if game.state == 'end' :
+            player = game.desk.player
+            if len(player.results) == game.players_count:
+                game.players_count = -1
+                player.results = sorted(player.results, key=lambda d: d['points'], reverse = True)
+                game.desk.changed.append('results')
+                game.desk.draw()
 
 def choose_cards_set():
     global main_menu
@@ -210,7 +208,7 @@ def join_game():
         players.append(player)
     me = player_name
     game = Game(data['id'], int(data['players_count']), players, data['expansions'])
-    game.join_game(SCREEN, data['cards_set'], int(data['round']), me)
+    game.join_game(SCREEN, data['cards_set'], 1, me)
     do_game()
 
 def list_games():
@@ -254,20 +252,46 @@ def setup():
     main_menu.add.button('Konec', pygame_menu.events.EXIT)
     main_menu.mainloop(SCREEN) 
 
-def setup_x():
+def setup_test():
     global SCREEN
     global game
-    expansions = ['Dominion2nd', 'Intrigue2nd']
-    cards_set = ['Artisan', 'Cellar', 'Market', 'Merchant', 'Mine', 'Moat', 'Moneylender', 'Poacher', 'Remodel', 'Witch']
+    expansions = ['Dominion','Intrigue', 'Seaside']
 
-    players = []
-    data = call_api({ 'function' : 'create_game', 'name' : 'test1', 'player' : 'waladir', 'players_count' : 2, 'expansions' : json.dumps(expansions), 'cards_set' : json.dumps(cards_set) })
-    player = Player('waladir', 1)
+#    cards_set = ['Artisan', 'Cellar', 'Market', 'Merchant', 'Mine', 'Moat', 'Moneylender', 'Poacher', 'Remodel', 'Witch']
+    cards_set = ['Workshop', 'Woodcutter', 'Mine', 'Moat', 'Smithy', 'Militia', 'Remodel', 'Cellar', 'Market', 'Village']
+    if debug.test_attack_cards == True:
+        if debug.creator == True:
+            players = []
+            data = call_api({ 'function' : 'create_game', 'name' : 'test1', 'player' : 'waladir1', 'players_count' : 2, 'expansions' : json.dumps(expansions), 'cards_set' : json.dumps(cards_set) })
+            player = Player('waladir1', 1)
+        else:
+            data = call_api({ 'function' : 'list_games' })
+            for game in data:
+                if game['name'] == 'test1':
+                    game_id = game['id']
+            data = call_api({ 'function' : 'join_game', 'id' : game_id, 'player' : 'waladir2' })    
+            idx = 1
+            players = []
+            for player_name in data['players']:
+                player = Player(player_name, idx)
+                idx = idx + 1
+                players.append(player)
+            me = player_name
+            game = Game(data['id'], int(data['players_count']), players, data['expansions'])
+            game.join_game(SCREEN, data['cards_set'], int(data['round']), me)
+            do_game()
+    else:
+        players = []
+        data = call_api({ 'function' : 'create_game', 'name' : 'test1', 'player' : 'waladir', 'players_count' : 2, 'expansions' : json.dumps(expansions), 'cards_set' : json.dumps(cards_set) })
+        player = Player('waladir', 1)
     players.append(player)
     game = Game(data['id'], 2, players, expansions)
     game.create(SCREEN, cards_set)
     do_game()
 
 ############################ MAIN ############################
-setup()
+if debug.test_cards == False and debug.test_attack_cards == False:
+    setup()    
+else:
+    setup_test()
 

@@ -1,14 +1,9 @@
 from libs.classes.card import Card
-
-from libs.library.Dominion import Dominion
-from libs.library.Dominion2nd import Dominion2nd
-from libs.library.Intrigue import Intrigue
-from libs.library.Intrigue2nd import Intrigue2nd
-
 from libs.classes.action import Action
 
 class Throne_Room(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'throne_room'
         self.name = 'Trůnní sál' 
         self.name_en = 'Throne_Room'
@@ -20,27 +15,27 @@ class Throne_Room(Card):
         self.price = 4
         self.value = 0
 
-        self.actions = []
+        self.phase = 'select_to_play'
 
     def do_action(self):
-        if self.action.phase != 'select':
-            piles = self.player.hand
-            for pile in piles:
+        if self.phase == 'select_to_play':
+            selectable_piles = []
+            for pile in self.player.hand:
                 card = pile.top_card()
                 if 'action' in card.type:
-                    self.action.selectable_cards.append(card)
-            if len(self.action.selectable_cards) > 0:
-                self.action.to_select = 1
-                self.action.phase = 'select'
+                    selectable_piles.append(pile)
+            if len(selectable_piles) > 0:
+                self.player.activity.action_card_select(to_select = 1, select_type = 'optional', select_action = 'select', piles = selectable_piles, info = [])
+                self.phase = 'play_card'
+                self.desk.add_message('Vyber kartu, kterou zahraješ 2x')
                 self.desk.draw()
             else:
                 self.action.cleanup()
-        else:
-            if len(self.action.selected_cards) == 0:
+        elif self.phase == 'play_card':
+            if len(self.desk.selected_piles) == 0:
                 self.action.cleanup()
             else:
-                for selected in self.action.selected_cards:
-                    pile = self.action.selected_cards[selected]
+                for pile in self.desk.selected_piles:
                     card = pile.get_top_card()
                     self.player.coalesce_hand()
                     self.desk.put_card_to_play_area(card) 
@@ -48,16 +43,14 @@ class Throne_Room(Card):
                     self.desk.changed.append('play_area')
                     self.desk.draw()
                     for i in range(2):
-                        cardClass = Dominion.get_class(card.name_en)
-                        card_to_play = cardClass() 
-                        card_to_play.pile = None
-                        card_to_play.game = self.player.game
-                        card_to_play.desk = self.player.game.desk
-                        card_to_play.player = self.player                          
-                        action = Action(card_to_play, self.player)
-                        self.player.action = action
+                        cardClass = pile.get_class(card.name_en)
+                        virtual_card = cardClass() 
+                        virtual_card.pile = None
+                        virtual_card.game = self.player.game
+                        virtual_card.desk = self.player.game.desk
+                        virtual_card.player = self.player                          
+                        action = Action(virtual_card, self.player)
                         self.player.actions_to_play.append(action)
-                        self.player.action = self.action
-                        self.action.phase = 'play_action'
-            self.action.cleanup()        
+                self.desk.clear_select()
+                self.action.cleanup()        
 

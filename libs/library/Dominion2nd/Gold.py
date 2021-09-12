@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Gold(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'gold'
         self.name = 'Zlaťák' 
         self.name_en = 'Gold'

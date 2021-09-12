@@ -1,12 +1,9 @@
-import sys
-import time
-import pygame
-from pygame.locals import *
-
+import json 
 from libs.classes.card import Card
 
 class Bureaucrat(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'bureaucrat'
         self.name = 'Úředník' 
         self.name_en = 'Bureaucrat'
@@ -18,61 +15,58 @@ class Bureaucrat(Card):
         self.price = 4
         self.value = 0
 
+        self.phase = 'action'
+
     def do_action(self):
-        self.action.check_reaction()
-        for pile in self.desk.basic_piles:
-            card = pile.top_card()
-            if card.id == 'silver':
-                card = pile.get_top_card()
-                self.player.put_card_to_deck(card)
-        self.action.do_attack()
-        self.action.cleanup()        
-        self.player.phase = 'action'
-        self.desk.changed.append('info')
-        self.desk.draw()
+        from libs.events import create_event
+        if self.phase == 'action':
+            self.action.request_reactions()   
+            self.phase = 'get_reactions'         
+        elif self.phase == 'get_reactions':
+            for pile in self.desk.basic_piles:
+                card = pile.top_card()
+                if card is not None and card.name == 'Stříbrňák':
+                    card = pile.get_top_card()
+                    self.player.put_card_to_deck(card)
+                    self.desk.add_message('Získal jsi kartu ' + card.name + ' a umístil ji svůj dobírací balíček')
+                    create_event(self.player.game.get_me(), 'gain_card_to_deck', { 'player' : self.player.name, 'card_name' : card.name }, self.player.game.get_other_players_names())                                    
+            self.desk.changed.append('basic')
+            self.desk.changed.append('players_deck')
+            self.desk.draw()
+            self.phase = 'cleanup'
+            self.action.do_attack()
+        elif self.phase == 'cleanup':
+            self.action.cleanup()        
+            self.desk.draw()
 
     def do_attacked(self):
         from libs.events import create_event
-        self.player.attack_card = self
-        if self.action.phase != 'select':
-            piles = self.player.hand
-            self.player.phase = 'attacked'
-            for pile in piles:
+        if self.phase == 'action':
+            selectable_piles = []
+            for pile in self.player.hand:
                 card = pile.top_card()
                 if 'victory' in card.type:
-                    self.action.selectable_cards.append(card)
-            if len(self.action.selectable_cards) > 0:
-                self.action.to_select = 1
-                self.action.phase = 'select'
-                self.action.select_cards = 'mandatory'
+                    selectable_piles.append(pile)
+            if len(selectable_piles) > 0:
+                self.player.activity.action_card_select(to_select = 1, select_type = 'mandatory', select_action = 'select', piles = selectable_piles, info = [])
+                self.phase = 'place_victory_card_on_deck'
+                self.desk.add_message('Vyber kartu s vítěznými body, které odložíš na dobírací balíček')
                 self.desk.draw()
             else:
-                piles = self.player.hand
-                self.player.phase = 'attacked'
-                for pile in piles:
+                for pile in self.player.hand:
                     card = pile.top_card()
                     create_event(self.player.game.get_me(), 'showed_card_from_hand', { 'player' : self.player.name, 'card_name' : card.name }, self.player.game.get_other_players_names())                                    
+                self.desk.add_message('Ukázal jsi karty v ruce')
                 self.action.cleanup()
-                self.player.phase = 'wait'
-                self.desk.changed.append('players_hand')
-                self.desk.changed.append('players_deck')
-                self.desk.changed.append('info')
-                self.desk.draw()
-                self.player.game.switch_player = True
-                create_event(self.player.game.get_me(), 'attack_respond', { 'player' : self.player.name, 'card_name' : self.name_en }, self.player.game.get_other_players_names())
-        else:
-            for selected in self.action.selected_cards:
-                pile = self.action.selected_cards[selected]
+            create_event(self.player.game.get_me(), 'attack_respond', { 'player' : self.player.name, 'data' : json.dumps(None) }, self.player.game.get_other_players_names())
+        elif self.phase == 'place_victory_card_on_deck':
+            for pile in self.desk.selected_piles:
                 card = pile.get_top_card()
                 self.player.coalesce_hand()
                 self.player.put_card_to_deck(card)
-                create_event(self.player.game.get_me(), 'info_message', { 'message' : 'Hráč ' + self.player.name + 'vložil kartu ' + card.name + ' z ruky do dobíracího balíčku'}, self.player.game.get_other_players_names())
-            self.player.coalesce_hand()
-            self.action.cleanup()
-            self.player.phase = 'wait'
+                self.desk.add_message('Odložil jsi kartu ' + card.name + ' a svůj dobírací balíček')
+                create_event(self.player.game.get_me(), 'info_message', { 'message' : 'Hráč ' + self.player.name + ' odložil kartu ' + card.name + ' z ruky na dobírací balíček'}, self.player.game.get_other_players_names())
             self.desk.changed.append('players_hand')
             self.desk.changed.append('players_deck')
-            self.desk.changed.append('info')
-            self.desk.draw()
-            self.player.game.switch_player = True
-            create_event(self.player.game.get_me(), 'attack_respond', { 'player' : self.player.name, 'card_name' : self.name_en }, self.player.game.get_other_players_names())
+            self.action.cleanup()
+            create_event(self.player.game.get_me(), 'attack_respond', { 'player' : self.player.name, 'data' : json.dumps(None) }, self.player.game.get_other_players_names())

@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Trading_Post(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'trading_post'
         self.name = 'Obchodní misto' 
         self.name_en = 'Trading_Post'
@@ -13,33 +14,35 @@ class Trading_Post(Card):
         self.price = 5
         self.value = 0
 
+        self.phase = 'select_to_trash'
+
     def do_action(self):
-        if self.action.phase != 'select':
-            piles = self.player.hand
-            for pile in piles:
-                card = pile.top_card()
-                self.action.selectable_cards.append(card)
-            if len(self.action.selectable_cards) > 0:
-                self.action.to_select = 2
-                self.action.phase = 'select'
+        from libs.events import create_event
+        if self.phase == 'select_to_trash':
+            selectable_piles = []
+            for pile in self.player.hand:
+                selectable_piles.append(pile)
+            if len(selectable_piles) > 0:
+                self.player.activity.action_card_select(to_select = 2, select_type = 'optional', select_action = 'select', piles = selectable_piles, info = [])
+                self.phase = 'trash_cards'
+                self.desk.add_message('Vyber karty, které zahodíš na smetiště')
                 self.desk.draw()                
             else:
                 self.action.cleanup()               
-        else:
-            if len(self.action.selected_cards) > 0:
-                for selected in self.action.selected_cards:
-                    pile = self.action.selected_cards[selected]
+        elif self.phase == 'trash_cards':
+            if len(self.desk.selected_piles) > 0:
+                for pile in self.desk.selected_piles:
                     card = pile.get_top_card()
                     self.desk.trash.add_card(card)
-                if len(self.action.selected_cards) == 2:
-                    self.player.coalesce_hand()
-                    piles = self.desk.basic_piles
-                    for pile in piles:
+                    create_event(self, 'trash_card', { 'player' : self.player.name, 'card_name' : card.name }, self.game.get_other_players_names())
+                self.player.coalesce_hand()
+                if len(self.desk.selected_piles) == 2:
+                    for pile in self.desk.basic_piles:
                         card = pile.top_card()
-                        if card.name == 'Stříbrňák':
+                        if card is not None and card.name == 'Stříbrňák':
                             card = pile.get_top_card()
-                            if card is not None:
-                                self.player.put_card_to_discard(card)                
+                            self.player.put_card_to_discard(card)                
+                            create_event(self, 'gain_card', { 'player' : self.player.name, 'card_name' : card.name }, self.game.get_other_players_names())                            
             self.action.cleanup()
             self.desk.changed.append('players_hand')
             self.desk.changed.append('players_discard')

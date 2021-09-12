@@ -1,6 +1,8 @@
 from libs.classes.card import Card
+
 class Feast(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'feast'
         self.name = 'Hostina' 
         self.name_en = 'Feast'
@@ -12,29 +14,34 @@ class Feast(Card):
         self.price = 4
         self.value = 0
 
+        self.phase = 'select_to_gain'
+
     def do_action(self):
-        if self.action.phase != 'select':
-            piles = self.desk.basic_piles + self.desk.kingdom_piles
-            for pile in piles:
+        from libs.events import create_event
+        if self.phase == 'select_to_gain':
+            selectable_piles = []
+            for pile in self.desk.basic_piles + self.desk.kingdom_piles:
                 card = pile.top_card()
-                if card.price <= 5:
-                    self.action.selectable_cards.append(card)
-            if len(self.action.selectable_cards) > 0:
-                self.action.to_select = 1
-                self.action.phase = 'select'
-                self.desk.draw()                
+                if card is not None and card.price <= 5:
+                    selectable_piles.append(pile)
+            if len(selectable_piles) > 0:
+                self.player.activity.action_card_select(to_select = 1, select_type = 'optional', select_action = 'select', piles = selectable_piles, info = [])
+                self.phase = 'gain_card'
+                self.desk.add_message('Vyber kartu, kterou chceš získat. Hostina bude zahozena na smetiště.')
+                self.desk.draw()
             else:
                 self.action.cleanup()
-        else:
-            for selected in self.action.selected_cards:
-                pile = self.action.selected_cards[selected]
+        elif self.phase == 'gain_card':
+            for pile in self.desk.selected_piles:
                 card = pile.get_top_card()
                 self.player.put_card_to_discard(card)  
+                create_event(self.player.game.get_me(), 'gain_card', { 'player' : self.player.name, 'card_name' : card.name }, self.player.game.get_other_players_names())
             for pile in self.desk.play_area_piles:
                 card = pile.top_card()
                 if card == self.action.card:
                     card = pile.get_top_card()
-                    self.desk.trash.add_card(self.action.card)
+                    self.desk.trash.add_card(card)
+                    create_event(self.player.game.get_me(), 'trash_card', { 'player' : self.player.name, 'card_name' : card.name }, self.player.game.get_other_players_names())
             self.desk.coalesce_play_area()
             self.action.cleanup()
             self.desk.changed.append('basic')

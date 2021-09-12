@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Secret_Passage(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'secret_passage'
         self.name = 'Tajný průchod' 
         self.name_en = 'Secret_Passage'
@@ -13,75 +14,65 @@ class Secret_Passage(Card):
         self.price = 4
         self.value = 0
 
-        self.subphase = ''
+        self.phase = 'select_card_to_return_to_deck'
         self.card_to_place = None
 
     def do_action(self):
-        if self.action.bonuses == True:
-            self.action.bonuses = False        
+        from libs.events import create_event
+        if self.phase == 'select_card_to_return_to_deck':
             self.player.move_cards_from_deck_to_hand(2)
             self.desk.changed.append('players_deck')
             self.desk.changed.append('players_hand')            
             self.player.actions = self.player.actions + 1           
             self.desk.changed.append('info')
-
-        if self.action.phase != 'select':
-            piles = self.player.hand
-            for pile in piles:
-                card = pile.top_card()
-                self.action.selectable_cards.append(card)
-            if len(self.action.selectable_cards) > 0:
-                self.action.to_select = 1
-                self.action.phase = 'select'
-                self.action.select_cards = 'mandatory'
-                self.subphase = 'select_card'             
+            selectable_piles = []
+            for pile in self.player.hand:
+                selectable_piles.append(pile)
+            if len(selectable_piles) > 0:
+                self.player.activity.action_card_select(to_select = 1, select_type = 'mandatory', select_action = 'select', piles = selectable_piles, info = [])
+                self.desk.add_message('Vyber kartu, kterou dáš zpět do dobíracího balíčku')
+                self.phase = 'choose_card'
                 self.desk.draw()   
             else:
                 self.action.cleanup()
-        else:
-            if self.subphase == 'select_card':
-                for selected in self.action.selected_cards:
-                    pile = self.action.selected_cards[selected]
-                    self.card_to_place = pile.get_top_card()
-                self.player.coalesce_hand()  
-                self.desk.redraw_borders()                  
-                if self.card_to_place is not None:
-                    self.action.selectable_cards = []
-                    self.action.selected_cards = {}
-                    for card in self.player.deck.cards:
-                        self.action.to_select = 1
-                        self.desk.put_card_to_select_area(card)
-                        self.action.selectable_cards.append(card)
-                if len(self.action.selectable_cards) > 0:
-                    self.action.select_cards = 'mandatory'
+        elif self.phase == 'choose_card':
+            for pile in self.desk.selected_piles:
+                self.card_to_place = pile.get_top_card()
+            self.player.coalesce_hand()  
+            self.desk.redraw_borders()                  
+            if self.card_to_place is not None:
+                selectable_piles = []
+                self.desk.clear_select()
+                for card in self.player.deck.cards:
+                    self.action.to_select = 1
+                    self.desk.put_card_to_select_area(card)
+                for pile in self.desk.select_area_piles:
+                    selectable_piles.append(pile)
+                if len(selectable_piles) > 0:
                     self.desk.select_area_type = 'select_action'
                     self.desk.select_area = True
                     self.desk.select_area_hide_cards = True
                     self.desk.select_area_label = 'Označ kartu z dobíracího balíčku, za kterou vybranou kartu vložíš. Pokud chceš kartu umístit navrch dobíracího balíčku, označ dobírací balíček'
-                    self.subphase = 'self_resolution'
                     self.desk.changed.append('select_area')
                 else:
                     self.desk.select_area = False
-                self.action.selectable_piles.append(self.player.deck)
+                selectable_piles.append(self.player.deck)
                 self.desk.changed.append('players_deck')
                 self.desk.changed.append('players_hand')
-                self.action.to_select = 1
-                self.action.select_cards = 'mandatory'
-                self.subphase = 'place_card'             
+                self.player.activity.action_card_select(to_select = 1, select_type = 'mandatory', select_action = 'select', piles = selectable_piles, info = [])
+                self.phase = 'place_card'             
                 self.desk.draw()
-            elif self.subphase == 'place_card':
-                if len(self.action.selected_piles):
-                    self.player.put_card_to_deck(self.card_to_place)
-                else:
-                    for selected in self.action.selected_cards:
-                        pile = self.action.selected_cards[selected]
+        elif self.phase == 'place_card':
+            if len(self.desk.selected_piles) > 0:
+                for pile in self.desk.selected_piles:
+                    if pile == self.player.deck:
+                        self.player.put_card_to_deck(self.card_to_place)
+                    else:
                         self.player.deck.cards.insert(pile.position + 1, self.card_to_place)
-                self.desk.select_area = False
-                self.desk.changed.append('players_deck')
-                self.desk.changed.append('play_area')
-                self.desk.changed.append('info')
-                self.action.cleanup()
-                self.desk.draw()
-
-
-
+                    create_event(self, 'move_card_from_hand_to_deck', { 'player' : self.player.name }, self.game.get_other_players_names())
+            self.desk.select_area = False
+            self.desk.changed.append('players_deck')
+            self.desk.changed.append('play_area')
+            self.desk.changed.append('info')
+            self.action.cleanup()
+            self.desk.draw()

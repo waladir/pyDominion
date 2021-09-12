@@ -3,6 +3,8 @@ import time
 import pygame
 from pygame.locals import *
 
+import debug
+
 from libs.classes.desk import Desk
 from libs.classes.player import Player
 from libs.api import call_api
@@ -25,16 +27,21 @@ class Game():
         self.round = self.round + 1
         self.current_player = 0 
         self.desk = Desk(self.SCREEN, self.cards_set, self.players_count, self, self.players[self.current_player])
-        for player in self.players:
-            player.attach_game(self)
-            player.create_deck_pile()
-            player.create_hand()
-            player.create_discard_pile()
-            player.move_cards_from_deck_to_hand(5)
+        player = self.players[self.current_player]
+        player.attach_game(self)
+        player.create_deck_pile()
+        player.create_hand()
+        player.create_discard_pile()
+        player.move_cards_from_deck_to_hand(5)
         self.desk.draw(False)
         data = call_api({ 'function' : 'update_game', 'id' : self.id, 'status' : self.state, 'desk' : {}, 'round' : self.round, 'current_player' : 0 })
         self.desk.add_message('Čekám na ostatní hráče')
-        self.wait_for_start()
+        if debug.test_cards == False or debug.test_attack_cards == True:
+            self.wait_for_start()
+        else:
+            self.round = 0
+            self.current_player = 99
+            self.next_player()            
         self.state = 'running'
         players_names = []
         idx = 0
@@ -55,12 +62,12 @@ class Game():
         self.cards_set = cards_set
         self.round = round
         self.desk = Desk(self.SCREEN, self.cards_set, self.players_count, self, self.get_me())
-        for player in self.players:
-            player.attach_game(self)
-            player.create_deck_pile()
-            player.create_hand()
-            player.create_discard_pile()
-            player.move_cards_from_deck_to_hand(5)
+        player = self.get_me()
+        player.attach_game(self)
+        player.create_deck_pile()
+        player.create_hand()
+        player.create_discard_pile()
+        player.move_cards_from_deck_to_hand(5)
         self.desk.draw(False)
         self.desk.add_message('Čekám na ostatní hráče')
         players_names = []
@@ -77,26 +84,22 @@ class Game():
         create_event(self.get_me(), 'joined', self.get_me().name, self.get_other_players_names())
         self.wait_for_start()
         self.state = 'running'
+        player.phase = 'other_players_turn'
+        self.desk.changed.append('info')
+        self.desk.draw()
 
     def next_player(self):
-        if self.current_player+1 > len(self.players)-1:
+        if self.current_player + 1 > len(self.players) - 1:
             self.current_player = 0
             self.round = self.round + 1
         else:
             self.current_player = self.current_player + 1
-        self.switch_player = True
 
-    def do_round(self):
         player = self.players[self.current_player]
-        if player.name == self.me:
+        player.round = self.round
+        if player == self.get_me():
             player.start_turn()
-            player.do_turn(self.desk)
-        else:
-            player = self.get_me()
-            if player.phase == 'attacked_reaction' or player.phase == 'attacked' :
-                player.do_turn(self.desk)
             
-
     def get_other_players_names(self):
         names = []
         for player in self.players:
@@ -117,6 +120,9 @@ class Game():
                 return player
         return None
 
+    def get_current_player(self):
+        return self.players[self.current_player].name
+
     def wait_for_start(self):
         data = call_api({ 'function' : 'get_game', 'id' : self.id })
         last_ts = 0
@@ -128,7 +134,23 @@ class Game():
                 data = call_api({ 'function' : 'get_game', 'id' : self.id })
             for event in pygame.event.get():
                 self.check_events(event)
-  
+                if event.type == pygame.MOUSEBUTTONDOWN:            
+                    if event.button == 3:
+                        x, y = event.pos 
+                        self.desk.show_card_detail(x, y)
+        players_names = []
+        idx = 0
+        for player in self.players:
+            players_names.append(player.name)
+            idx = player.index
+        for player_name in data['players']:
+            if player_name not in players_names:
+                idx = idx + 1
+                player = Player(player_name, idx)
+                self.players.append(player)
+        self.round = 0
+        self.current_player = 99
+        self.next_player()
 
     def check_end(self, card):
         piles = self.desk.basic_piles + self.desk.kingdom_piles
@@ -173,4 +195,5 @@ class Game():
             else:
                 self.desk.chat += event.unicode
             self.desk.draw_chat()
+
 

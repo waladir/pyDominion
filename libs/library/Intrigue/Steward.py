@@ -2,6 +2,7 @@ from libs.classes.card import Card
 
 class Steward(Card):
     def __init__(self):
+        Card.__init__(self)        
         self.id = 'steward'
         self.name = 'Správce' 
         self.name_en = 'Steward'
@@ -13,58 +14,56 @@ class Steward(Card):
         self.price = 2
         self.value = 0
 
-        self.select_to_trash = False
+        self.phase = 'select_bonus'
 
     def do_action(self):
-        if self.action.phase != 'select':
+        from libs.events import create_event
+        if self.phase == 'select_bonus':
+            selectable_piles = []
             if len(self.player.deck.cards) + len(self.player.discard.cards) > 0:
-                self.action.selectable_piles.append(self.player.deck)
-            self.action.selectable_piles.append(self.desk.trash)
-            self.action.to_select = 1
-            self.action.selectable_info = ['treasure']
-            self.action.phase = 'select'
+                selectable_piles.append(self.player.deck)
+            selectable_piles.append(self.desk.trash)
+            selectable_info = ['treasure']
+            self.player.activity.action_card_select(to_select = 1, select_type = 'optional', select_action = 'select', piles = selectable_piles, info = selectable_info)
+            self.phase = 'get_bonus'
+            self.desk.add_message('Pro +2 karty vyber dobírací balíček, pro zahození 2 karet smetiště')
             self.desk.draw()                
-        else:
-            if self.select_to_trash == False:
-                if len(self.action.selected_piles) > 0:
-                    for pile in self.action.selected_piles:
-                        if pile == self.player.deck:
-                            cards = self.player.get_cards_from_deck(2)
-                            for card in cards:
-                                self.player.put_card_to_hand(card)   
-                        else:
-                            self.action.selectable_piles = []
-                            self.action.selectable_info = []
-                            self.action.selected_piles = []
-                            self.action.selected_info = []
-                            piles = self.player.hand
-                            for pile in piles:
-                                card = pile.top_card()
-                                self.action.selectable_cards.append(card)
-                            if len(self.action.selectable_cards) > 0:
-                                self.action.to_select = 2
-                                self.action.phase = 'select'
-                                self.select_to_trash = True
-                                self.desk.draw()                
-                if len(self.action.selected_info) > 0:
-                    for section in self.action.selected_info:
+        elif self.phase == 'get_bonus':
+                for pile in self.desk.selected_piles:
+                    if pile == self.player.deck:
+                        cards = self.player.get_cards_from_deck(2)
+                        for card in cards:
+                            self.player.put_card_to_hand(card)   
+                    elif pile == self.desk.trash:
+                        self.desk.clear_select()
+                        selectable_piles = []
+                        for pile in self.player.hand:
+                            selectable_piles.append(pile)
+                        if len(selectable_piles) > 0:
+                            self.player.activity.action_card_select(to_select = 2, select_type = 'optional', select_action = 'select', piles = selectable_piles)
+                            self.desk.add_message('Vyber karty, které zahodíš na smetiště')
+                            self.phase = 'select_to_trash'
+                            self.desk.draw()                
+                if len(self.desk.selected_info) > 0:
+                    for section in self.desk.selected_info:
                         if section == 'treasure':
                             self.player.treasure = self.player.treasure + 2
-            if self.select_to_trash == False:
-                self.action.cleanup()
-                self.desk.changed.append('players_deck')
-                self.desk.changed.append('players_hand')
-                self.desk.changed.append('info')
-                self.desk.draw()
-            else:
-                if self.action.to_select == -1:
-                    for selected in self.action.selected_cards:
-                        pile = self.action.selected_cards[selected]
-                        card = pile.get_top_card()
-                        self.player.coalesce_hand()
-                        self.desk.trash.add_card(card)
+                if self.phase != 'select_to_trash':
                     self.action.cleanup()
                     self.desk.changed.append('players_hand')
                     self.desk.changed.append('info')
-                    self.desk.changed.append('trash')
-                    self.desk.draw()                      
+                    self.desk.changed.append('players_deck')
+                    self.desk.draw()
+        elif self.phase == 'select_to_trash':
+            if len(self.desk.selected_piles) > 0:
+                for pile in self.desk.selected_piles:
+                    card = pile.get_top_card()
+                    self.desk.trash.add_card(card)
+                    create_event(self, 'trash_card', { 'player' : self.player.name, 'card_name' : card.name }, self.game.get_other_players_names())
+                    self.player.coalesce_hand()
+                self.action.cleanup()
+                self.desk.changed.append('players_hand')
+                self.desk.changed.append('players_deck')
+                self.desk.changed.append('info')
+                self.desk.changed.append('trash')
+                self.desk.draw()                      

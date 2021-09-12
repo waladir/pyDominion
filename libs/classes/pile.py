@@ -1,6 +1,7 @@
 import os
 import random
 import math
+from collections import Counter
 
 import pygame
 
@@ -10,6 +11,7 @@ from libs.library.Dominion import Dominion
 from libs.library.Dominion2nd import Dominion2nd
 from libs.library.Intrigue import Intrigue
 from libs.library.Intrigue2nd import Intrigue2nd
+from libs.library.Seaside import Seaside
 
 from libs.events import create_event
 
@@ -19,6 +21,8 @@ class Pile():
         self.position = position
         self.cards = []
         self.game = game
+
+        self.hidden_pile = 0 # 0 = licem nahoru, 1 = licem dolu, nelze zobrazit detail, -1 = licem dolu, lze zobrazit detail (vlastnik)
     
     def get_class(self, card_name):
         for expansion in self.game.expansions:
@@ -35,10 +39,10 @@ class Pile():
             self.card_name = self.cards[0].name_en
 
     def create_players_pile(self):
-        # self.create_pile('Copper', 7)
-        # self.create_pile('Estate', 3)
-        self.create_pile('Witch', 7)
-        self.create_pile('Moat', 7)
+        self.create_pile('Copper', 7)
+        self.create_pile('Estate', 3)
+        # self.create_pile('Pearl_Diver', 7)
+        # self.create_pile('Witch', 7)
         self.shuffle()        
 
     def create_card(self, cardClass):
@@ -49,9 +53,9 @@ class Pile():
         card.player = self.game.desk.player
         self.cards.insert(0, card)
 
-
-    def add_card(self, card, append = False, event = True):
+    def add_card(self, card, append = False, event = True, hidden_pile = 0):
         card.pile = self
+        self.hidden_pile = hidden_pile
         card.game = self.game
         card.desk = self.game.desk
         card.player = self.game.desk.player
@@ -59,8 +63,8 @@ class Pile():
             self.cards.append(card)
         else:
             self.cards.insert(0, card)
-        if event == True and (self.place == 'basic' or self.place == 'kingdom' or self.place == 'thrash' or self.place == 'play_area'):
-            create_event(self, 'add_card', { 'place' : self.place, 'position' : self.position, 'card_name' : card.name_en, 'append' : append }, self.game.get_other_players_names())
+        if event == True and (self.place == 'basic' or self.place == 'kingdom' or self.place == 'trash' or self.place == 'play_area'):
+            create_event(self, 'add_card', { 'place' : self.place, 'position' : self.position, 'card_name' : card.name_en, 'append' : append, 'hidden_pile' : abs(self.hidden_pile) }, self.game.get_other_players_names())
 
     def top_card(self):
         if len(self.cards) > 0:
@@ -176,11 +180,32 @@ class Pile():
                         SCREEN.blit(text, textRect)                 
                 elif self.position - desk.select_area_offset == 11:
                     pygame.draw.rect(SCREEN, (0, 0, 0), (x, y - 2 - 15, 140, 30))
-                                
         if self.place == 'players_deck':
             not_show = True
         if card is not None:   
-            card.draw_card(SCREEN, (x, y), not_show)  
+            if not_show == True or abs(self.hidden_pile) == 1:
+                hide = True
+            else:
+                hide = False
+            card.draw_card(SCREEN, (x, y), hide)  
+            if desk is not None:
+                triggers = []
+                for trigger in desk.get_pile_triggers(self):
+                    triggers.append(trigger.description)
+                if len(triggers) > 0:
+                    label = ''
+                    tokens = dict(Counter(triggers))
+                    for token in tokens.keys():
+                        if len(label) == 0:
+                            label = token + ' ' + str(tokens[token]) + 'x'
+                        else:
+                            label = ', ' + token + ' ' + str(tokens[token]) + 'x'
+                    font = pygame.font.Font('freesansbold.ttf', 15)
+                    text = font.render(label, True, (255, 0, 0))
+                    textRect = text.get_rect()
+                    textRect.center = (x + image_x/2, y + image_y - 7) 
+                    SCREEN.blit(text, textRect)   
+
 
     def border_pile(self, SCREEN, color, desk):
         x, y = self.get_coordinates(desk)

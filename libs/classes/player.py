@@ -1,6 +1,8 @@
+from libs.classes.activity import Activity
 from libs.classes.pile import Pile
 from libs.classes.desk import Desk
-from libs.events import get_events, create_event
+
+from libs.events import create_event
 
 class Player():
     def __init__(self, name, index):
@@ -9,16 +11,22 @@ class Player():
         self.treasure = 0
         self.actions = 1
         self.buys = 1
-        self.phase = 'wait'
+        self.round = 0
+        self.phase = 'wait_for_start'
 
         self.action = None
+        self.activity = Activity(self)
         self.actions_to_play = []
 
         self.events = []
         self.results = []
 
+        self.play_area_cards = []
+
     def attach_game(self, game):
         self.game = game
+        self.activity.game = self.game
+        self.activity.desk = self.game.desk
 
     def create_deck_pile(self):
         pile = Pile('players_deck', 0, self.game)
@@ -87,86 +95,53 @@ class Player():
 
     def move_cards_from_deck_to_hand(self, count):
         cards = self.get_cards_from_deck(count)
+        if self.phase != 'wait_for_start':
+            create_event(self, 'draw_card', { 'player' : self.name, 'count' : len(cards) }, self.game.get_other_players_names())
         for card in cards:
             self.put_card_to_hand(card)
 
-    def move_cards_from_hand_to_discard(self, count):
-        cards = self.get_cards_from_hand(count)
-        for card in cards:
+    def move_cards_from_hand_to_discard(self):
+        for pile in self.hand:
+            card = pile.get_top_card()
             self.put_card_to_discard(card)   
-        self.coalesce_hand()
+            create_event(self, 'discard_card', { 'player' : self.name, 'card_name' : card.name }, self.game.get_other_players_names())
+            del pile
+        self.hand = []
 
     def coalesce_hand(self):
         for pile in self.hand:
             if len(pile.cards) == 0:
-                self.hand.remove(pile)
-                del pile
+               self.hand.remove(pile)
+               del pile
         i = 0
         for pile in self.hand:
             pile.position = i
             i = i + 1
 
     def start_turn(self):
-        create_event(self, 'start_turn', self.name, self.game.get_other_players_names())
-        self.phase = 'action'
-
-    def do_turn(self, desk):
-        if self.phase == 'action':
-            self.action_phase(desk)
-        if self.phase == 'buy':
-            self.buy_phase(desk)
-        if self.phase == 'cleanup':
-            self.cleanup_phase()
-        if self.phase == 'attacked_reaction' or self.phase == 'attacked':
-            desk.changed.append('info')
-            desk.draw()
-            
-    def action_phase(self, desk):
-        self.action = None
-        create_event(self, 'action', self.name, self.game.get_other_players_names())
-        self.desk.add_message('Začátek akční fáze')
-        desk.changed.append('info')
-        desk.draw()
-
-    def buy_phase(self, desk):
-        desk.changed.append('info')
-        desk.draw()
-
-    def cleanup_phase(self):
-        for pile in self.game.desk.play_area_piles:
-            for i in range(len(pile.cards)):
-                card = pile.get_top_card()
-                self.put_card_to_discard(card)
-        self.move_cards_from_hand_to_discard(len(self.hand))
-        self.move_cards_from_deck_to_hand(5)      
-        self.treasure = 0
-        self.actions = 1
-        self.buys = 1
-        self.phase = 'wait'
-        self.action = None
-        self.desk.clear_triggers(duration = 'end_of_round')
-        self.desk.draw(False)
-        create_event(self, 'next_player', self.name, self.game.get_other_players_names())
-        self.game.next_player()
-
-    def wait_phase(self, desk):
-        self.phase = 'wait'
+        self.activity.start_action_phase()
 
     def get_phase(self):
-        if self.phase == 'wait':
-            return 'čekám na ostatní hráče'
-        if self.phase == 'action':
+        if self.phase == 'wait_for_start':
+            return 'Čekám na ostatní hráče'
+        if self.phase == 'action' or self.phase == 'action_play':
             return 'Akční'
         if self.phase == 'buy':
             return 'Nákup'
-        if self.phase == 'attack':
-            return 'Útok - čekání na reakci'
+        if self.phase == 'other_players_turn':
+            return 'Hraje ' + self.game.get_current_player()
+        if self.phase == 'attack_wait_for_reaction' or self.phase == 'attack_wait_for_respond':
+            if self.actions_to_play[0].card.subtype == 'attack':
+                return 'Útok - čekání na reakci'
+            else:
+                return 'Akce - čekání na reakci'                
         if self.phase == 'attacked_reaction':
             return 'Útok - reakce'
         if self.phase == 'attacked':
-            return 'Útok - akce'            
-        if self.phase == 'buy':
-            return 'Nákup'
+            if len(self.actions_to_play) > 0 and self.actions_to_play[0].card.subtype == 'attack':
+                return 'Útok - akce'   
+            else:
+                return 'Akce - reakce'
         if self.phase == 'end_game':
             return 'Konec hry'            
 
@@ -185,6 +160,7 @@ class Player():
         if self.phase == 'action':
             skip_phase = False
             action_cards = 0
+            self.coalesce_hand()
             for pile in self.hand:
                 card = pile.top_card()
                 if 'action' in card.type:
@@ -196,17 +172,11 @@ class Player():
                 self.desk.add_message('Žádné další akce, konec akční fáze')
                 skip_phase = True
             if skip_phase == True:
-                self.phase = 'buy'
-                create_event(self, 'buy', self.name, self.game.get_other_players_names())
-                self.desk.changed.append('info')
-                self.desk.draw()
+                self.activity.start_buy_phase()
         if self.phase == 'buy':
             skip_phase = False
             if self.buys == 0:
                 self.desk.add_message('Žádný další nákup, konec fáze nákupu')
                 skip_phase = True
             if skip_phase == True:
-                self.phase = 'cleanup'
-                self.cleanup_phase()
-                self.desk.changed.append('info')
-                self.desk.draw()                
+                self.activity.start_cleanup()
